@@ -8,19 +8,31 @@ from config import CHECK_INTERVAL, DISCORD_WEBHOOK_URL, DISPLAY_NAME, LIVE_URL, 
 was_available = False
 
 def send_discord_notification(carpark_name, spots_available):
-    """Sends a richly formatted message to your Discord channel via Webhook."""
+    """Sends a richly formatted message to your Discord channel via Webhook, dynamically styled based on availability."""
+    
+    # Dynamically change the look and feel depending on the spot count
+    if spots_available > 0:
+        title = "🚨 Parking Spot Available!"
+        description = f"Good news! **{carpark_name}** has available spaces."
+        color = 3066993  # Green accent color
+        spots_value = f"**{spots_available}** spots left"
+    else:
+        title = "🛑 Car Park is Full!"
+        description = f"Bad news... **{carpark_name}** is now completely full."
+        color = 15158332  # Crimson Red accent color
+        spots_value = "🔴 **0** spots left"
+
     payload = {
         "username": "DSAT Parking Bot",
-        "avatar_url": "https://www.dsat.gov.mo/images/logo.png", 
         "embeds": [
             {
-                "title": "🚨 Parking Spot Available!",
-                "description": f"Good news! **{carpark_name}** has available spaces.",
-                "color": 3066993,  # Green accent color
+                "title": title,
+                "description": description,
+                "color": color,
                 "fields": [
                     {
                         "name": "🚗 Light Vehicle Spots (輕型車輛)",
-                        "value": f"**{spots_available}** spots left",
+                        "value": spots_value,
                         "inline": True
                     },
                     {
@@ -93,14 +105,20 @@ def check_parking():
             spots_available = 0
 
         print(f"[{time.strftime('%Y-%m-%d %H:%M:%S')}] {DISPLAY_NAME}: {spots_available} spots available.")
-        
-        # Automation notification triggers
-        if spots_available > 0 and not was_available:
-            print("🎯 Spot found! Dispatching Discord ping...")
+
+        currently_available = spots_available > 0
+
+        # STATE CHANGE 1: It was full, but now a spot just opened up!
+        if currently_available and not was_available:
+            print(f"🎯 State Change! Spots found: {spots_available}. Dispatching alert.")
             send_discord_notification(DISPLAY_NAME, spots_available)
-            was_available = True  
-        elif spots_available == 0:
-            was_available = False 
+            was_available = True
+
+        # STATE CHANGE 2: It had spots, but now it just filled up completely!
+        elif not currently_available and carpark_was_available:
+            print("🔴 State Change! Car park is now full.")
+            send_discord_notification(DISPLAY_NAME, spots_available)
+            was_available = False
                 
     except Exception as e:
         print(f"An error occurred while monitoring: {e}")
@@ -144,4 +162,4 @@ if __name__ == "__main__":
             # send_discord_notification(DISPLAY_NAME, "⚠️ Bot encountered an error but is retrying...")
             
             # Wait a buffer period before trying again so you don't spam requests in a broken state
-            time.sleep(60)
+            time.sleep(CHECK_INTERVAL)
