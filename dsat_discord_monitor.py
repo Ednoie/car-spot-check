@@ -115,7 +115,7 @@ def check_parking():
             was_available = True
 
         # STATE CHANGE 2: It had spots, but now it just filled up completely!
-        elif not currently_available and carpark_was_available:
+        elif not currently_available and was_available:
             print("🔴 State Change! Car park is now full.")
             send_discord_notification(DISPLAY_NAME, spots_available)
             was_available = False
